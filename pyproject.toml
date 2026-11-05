@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devreplicant"
+version = "1.0.0"
+authors = [
+  { name="Scempyyy" },
+]
+description = "Universal developer environment snapshotter, restore script generator, and Docker re-hydration engine."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Software Development",
+]
+
+[project.scripts]
+devreplicant = "devreplicant.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["devreplicant*"]

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevReplicant — Developer Environment Snapshotter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            surface: {
+              800: '#171926',
+              900: '#0e101a',
+              950: '#080910',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #1c1533 0%, #080910 75%);
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: rgba(23, 25, 38, 0.7);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="text-slate-100 font-sans antialiased selection:bg-amber-500 selection:text-slate-950 flex flex-col min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-surface-950/70 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-violet-600 flex items-center justify-center shadow-lg shadow-amber-500/20 font-black text-lg text-slate-950">
+          🧬
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-xl tracking-tight text-white">Dev<span class="text-amber-400">Replicant</span></span>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">v1.0</span>
+          </div>
+          <p class="text-xs text-slate-400">Environment Snapshotter & Machine Re-hydration Engine</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button onclick="downloadManifest()" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition">
+          Download Manifest (.json)
+        </button>
+        <button onclick="downloadRestoreScript()" class="px-3.5 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-lg shadow-amber-500/20">
+          Export restore.sh
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8 flex-1 space-y-8 w-full">
+    
+    <!-- Hero / System Specs Banner -->
+    <div class="glass-card rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2 text-xs font-mono text-amber-400">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span>LIVE HOST SCAN</span>
+          </div>
+          <h2 id="osTitle" class="text-2xl font-black text-white">Scanning machine...</h2>
+          <p id="osSubtitle" class="text-xs text-slate-400 font-mono">Gathering architecture, kernel, and environment metadata...</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button onclick="fetchSnapshot()" id="refreshBtn" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center gap-2">
+            <span>🔄</span> Refresh Snapshot
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolchain Matrix -->
+    <div class="glass-card rounded-2xl p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+          <span>🛠️</span> Discovered Runtimes & Compilers
+        </h3>
+        <span id="toolCountBadge" class="text-xs font-mono text-slate-400">0 Installed</span>
+      </div>
+
+      <div id="toolchainsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <!-- Toolchain cards -->
+      </div>
+    </div>
+
+    <!-- Package Manager Breakdown & Restoration Code -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- Packages List Tabs -->
+      <div class="lg:col-span-7 glass-card rounded-2xl flex flex-col shadow-xl overflow-hidden min-h-[420px]">
+        <div class="flex border-b border-slate-800 bg-surface-900/60 text-xs px-2 pt-2">
+          <button onclick="switchPkgTab('apt')" class="pkg-tab active px-4 py-2 font-semibold text-amber-400 border-b-2 border-amber-500" data-tab="apt">APT / System</button>
+          <button onclick="switchPkgTab('pip')" class="pkg-tab px-4 py-2 font-semibold text-slate-400 hover:text-white" data-tab="pip">Python (pip)</button>
+          <button onclick="switchPkgTab('npm')" class="pkg-tab px-4 py-2 font-semibold text-slate-400 hover:text-white" data-tab="npm">NPM Global</button>
+          <button onclick="switchPkgTab('vscode')" class="pkg-tab px-4 py-2 font-semibold text-slate-400 hover:text-white" data-tab="vscode">VS Code</button>
+          <button onclick="switchPkgTab('git')" class="pkg-tab px-4 py-2 font-semibold text-slate-400 hover:text-white" data-tab="git">Git Config</button>
+        </div>
+
+        <div id="pkgContentArea" class="flex-1 p-4 overflow-y-auto custom-scroll font-mono text-xs text-slate-300">
+          <div class="text-center text-slate-500 py-12">Loading packages...</div>
+        </div>
+      </div>
+
+      <!-- Restoration Assets -->
+      <div class="lg:col-span-5 glass-card rounded-2xl p-6 shadow-xl space-y-4 flex flex-col">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="font-bold text-sm text-white flex items-center gap-2">
+            <span>⚡</span> Automated Re-hydration
+          </h3>
+          <span class="text-xs text-amber-400 font-mono">Zero Config</span>
+        </div>
+
+        <div class="space-y-4 flex-1 flex flex-col justify-between">
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-xs text-slate-400 font-semibold">
+              <span>RESTORE.SH SCRIPT PREVIEW</span>
+              <button onclick="copyScript()" class="text-amber-400 hover:underline">Copy Script</button>
+            </div>
+            <pre id="restoreScriptPre" class="h-56 bg-slate-900 border border-slate-800 rounded-xl p-3 font-mono text-[11px] text-slate-300 overflow-y-auto custom-scroll whitespace-pre-wrap"></pre>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex justify-between items-center text-xs text-slate-400 font-semibold">
+              <span>DOCKERFILE CONTAINER BLUEPRINT</span>
+              <button onclick="copyDockerfile()" class="text-amber-400 hover:underline">Copy</button>
+            </div>
+            <pre id="dockerfilePre" class="h-32 bg-slate-900 border border-slate-800 rounded-xl p-3 font-mono text-[11px] text-slate-300 overflow-y-auto custom-scroll whitespace-pre-wrap"></pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500 font-mono">
+    DevReplicant • Universal Machine Snapshotter • Open Source
+  </footer>
+
+  <script>
+    let currentData = null;
+    let currentTab = 'apt';
+
+    async function fetchSnapshot() {
+      const btn = document.getElementById('refreshBtn');
+      btn.innerHTML = `<span>⚙️</span> Scanning...`;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/snapshot');
+        const data = await res.json();
+        currentData = data;
+        renderSnapshot(data);
+      } catch (e) {
+        alert("Snapshot failed: " + e.message);
+      } finally {
+        btn.innerHTML = `<span>🔄</span> Refresh Snapshot`;
+        btn.disabled = false;
+      }
+    }
+
+    function renderSnapshot(data) {
+      const snap = data.snapshot;
+      const sys = snap.system || {};
+
+      document.getElementById('osTitle').innerText = `${sys.os_pretty || sys.system} (${sys.machine})`;
+      document.getElementById('osSubtitle').innerText = `Host: ${sys.hostname} • Kernel: ${sys.release} • Python ${sys.python_version}`;
+
+      // Tools
+      const tools = snap.toolchains || {};
+      const grid = document.getElementById('toolchainsGrid');
+      grid.innerHTML = '';
+      let installedCount = 0;
+
+      for (const [tool, info] of Object.entries(tools)) {
+        if (info.installed) installedCount++;
+        const border = info.installed ? 'border-amber-500/30 bg-amber-500/5' : 'border-slate-800/80 bg-slate-900/40 opacity-50';
+        const badge = info.installed ? 'text-amber-400' : 'text-slate-600';
+
+        const div = document.createElement('div');
+        div.className = `p-3 rounded-xl border ${border} flex flex-col justify-between`;
+        div.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-bold text-xs uppercase text-slate-200">${tool}</span>
+            <span class="text-[10px] ${badge} font-mono font-bold">${info.installed ? '✓' : '✗'}</span>
+          </div>
+          <div class="text-[10px] text-slate-400 font-mono truncate" title="${info.version || 'Not installed'}">
+            ${info.installed ? info.version : 'Not found'}
+          </div>
+        `;
+        grid.appendChild(div);
+      }
+      document.getElementById('toolCountBadge').innerText = `${installedCount} of ${Object.keys(tools).length} Tools Detected`;
+
+      // Code blocks
+      document.getElementById('restoreScriptPre').innerText = data.restore_script || '';
+      document.getElementById('dockerfilePre').innerText = data.dockerfile || '';
+
+      renderCurrentTab();
+    }
+
+    function switchPkgTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.pkg-tab').forEach(b => {
+        b.className = (b.getAttribute('data-tab') === tab) ?
+          'pkg-tab active px-4 py-2 font-semibold text-amber-400 border-b-2 border-amber-500' :
+          'pkg-tab px-4 py-2 font-semibold text-slate-400 hover:text-white';
+      });
+      renderCurrentTab();
+    }
+
+    function renderCurrentTab() {
+      if (!currentData) return;
+      const snap = currentData.snapshot;
+      const pkgs = snap.packages || {};
+      const container = document.getElementById('pkgContentArea');
+
+      let items = [];
+      if (currentTab === 'apt') items = pkgs.apt || [];
+      else if (currentTab === 'pip') items = pkgs.pip || [];
+      else if (currentTab === 'npm') items = pkgs.npm_global || [];
+      else if (currentTab === 'vscode') items = pkgs.vscode_extensions || [];
+      else if (currentTab === 'git') {
+        const conf = snap.git_config || {};
+        items = Object.entries(conf).map(([k, v]) => `${k} = ${v}`);
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="text-center text-slate-500 py-12">No items discovered for ${currentTab.toUpperCase()}</div>`;
+        return;
+      }
+
+      let html = `<div class="space-y-1">`;
+      items.forEach(item => {
+        html += `<div class="px-2 py-1 rounded bg-slate-900/60 border border-slate-850 hover:border-slate-700 transition select-all">${item}</div>`;
+      });
+      html += `</div>`;
+      container.innerHTML = html;
+    }
+
+    function downloadManifest() {
+      if (!currentData) return;
+      const blob = new Blob([JSON.stringify(currentData.snapshot, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `DevReplicant-Manifest-${Date.now()}.json`;
+      a.click();
+    }
+
+    function downloadRestoreScript() {
+      if (!currentData) return;
+      const blob = new Blob([currentData.restore_script], { type: 'text/x-sh' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `restore.sh`;
+      a.click();
+    }
+
+    function copyScript() {
+      if (!currentData) return;
+      navigator.clipboard.writeText(currentData.restore_script);
+      alert("restore.sh copied to clipboard!");
+    }
+
+    function copyDockerfile() {
+      if (!currentData) return;
+      navigator.clipboard.writeText(currentData.dockerfile);
+      alert("Dockerfile copied to clipboard!");
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchSnapshot();
+    });
+  </script>
+</body>
+</html>
